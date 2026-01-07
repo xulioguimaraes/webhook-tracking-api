@@ -11,6 +11,7 @@ API Node.js para receber webhooks, enfileirar dados e redirecionar para Facebook
 - ✅ Integração com Facebook Conversions API
 - ✅ Logging estruturado
 - ✅ Tratamento robusto de erros
+- ✅ Documentação Swagger/OpenAPI interativa
 
 ## Pré-requisitos
 
@@ -296,6 +297,12 @@ Verifica o status da API e da fila.
 #### GET `/`
 
 Informações sobre a API.
+
+#### GET `/api-docs`
+
+Documentação interativa da API usando Swagger UI.
+
+Acesse `http://localhost:3000/api-docs` para ver a documentação completa com exemplos e poder testar os endpoints diretamente.
 
 ## Estrutura do Projeto
 

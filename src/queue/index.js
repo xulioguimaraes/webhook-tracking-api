@@ -17,8 +17,19 @@ const redisConnection = new Redis({
 });
 
 // Eventos de conexão Redis
-redisConnection.on('connect', () => {
+redisConnection.on('connect', async () => {
   logger.info('Redis conectado com sucesso');
+  
+  // Verifica e avisa sobre a política de eviction
+  try {
+    const evictionPolicy = await redisConnection.config('GET', 'maxmemory-policy');
+    if (evictionPolicy && evictionPolicy[1] !== 'noeviction') {
+      logger.warn(`⚠️  Redis eviction policy está como "${evictionPolicy[1]}". Recomendado: "noeviction" para evitar perda de jobs.`);
+      logger.warn('   Configure no Redis: CONFIG SET maxmemory-policy noeviction');
+    }
+  } catch (error) {
+    // Ignora erros de verificação (pode não ter permissão)
+  }
 });
 
 redisConnection.on('error', (error) => {

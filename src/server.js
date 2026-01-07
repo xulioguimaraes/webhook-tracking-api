@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import config from './config/index.js';
 import logger from './utils/logger.js';
 import webhookRoutes from './routes/webhook.js';
 import { getQueueStats } from './queue/index.js';
+import { swaggerSpec } from './config/swagger.js';
 import './queue/processor.js'; // Inicia o worker
 
 const app = express();
@@ -23,10 +25,43 @@ app.use((req, res, next) => {
   next();
 });
 
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Webhook Tracking API - Swagger',
+}));
+
 // Rotas
 app.use('/webhook', webhookRoutes);
 
-// Health check
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check da API
+ *     description: Verifica o status da API e da fila de processamento
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: API está funcionando corretamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ *       503:
+ *         description: Serviço indisponível
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 message:
+ *                   type: string
+ *                   example: "Serviço indisponível"
+ */
 app.get('/health', async (req, res) => {
   try {
     const queueStats = await getQueueStats();
@@ -53,6 +88,7 @@ app.get('/', (req, res) => {
     endpoints: {
       webhook: '/webhook',
       health: '/health',
+      apiDocs: '/api-docs',
     },
   });
 });

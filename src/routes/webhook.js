@@ -33,8 +33,72 @@ const validateWebhook = (req, res, next) => {
 };
 
 /**
- * POST /webhook
- * Recebe webhook e adiciona na fila
+ * @swagger
+ * /webhook:
+ *   post:
+ *     summary: Recebe webhook e adiciona na fila para processamento
+ *     description: |
+ *       Recebe eventos de webhook, valida os dados e adiciona na fila Redis para processamento assíncrono.
+ *       O evento será processado e enviado para a API de conversão configurada (Facebook por padrão).
+ *       
+ *       **Autenticação:**
+ *       - `X-Webhook-Secret`: Secret configurado no .env
+ *     
+ *       
+ *       **Eventos suportados:**
+ *       - purchase, lead, view_content, add_to_cart, initiate_checkout, search, complete_registration, contact, subscribe
+ *     tags: [Webhook]
+ *     security:
+ *       - BearerAuth: []
+ *       - WebhookSecret: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WebhookRequest'
+ *           example:
+ *             event_name: "TestEvent"
+ *             event_time: 1767668352
+ *             action_source: "website"
+ *             user_data:
+ *               client_ip_address: "254.254.254.254"
+ *               client_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:63.0) Gecko/20100101 Firefox/63.0"
+ *               em: "f660ab912ec121d1b1e928a0bb4bc61b15f5ad44d5efdc4e1c92a25e99b8e44a"
+ *             test_event_code: "TEST91814"
+ *     responses:
+ *       202:
+ *         description: Webhook recebido e adicionado à fila com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/WebhookResponse'
+ *             example:
+ *               success: true
+ *               message: "Webhook recebido e sendo processado"
+ *               job_id: "123"
+ *       400:
+ *         description: Payload inválido ou vazio
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Payload vazio ou inválido"
+ *       401:
+ *         description: Não autorizado (secret inválido)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               error: "Não autorizado"
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/', validateWebhook, async (req, res) => {
   try {
@@ -84,8 +148,29 @@ router.post('/', validateWebhook, async (req, res) => {
 });
 
 /**
- * GET /webhook/health
- * Health check específico do webhook
+ * @swagger
+ * /webhook/health:
+ *   get:
+ *     summary: Health check específico do webhook
+ *     description: Verifica o status do serviço de webhook
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Serviço está funcionando
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                 service:
+ *                   type: string
+ *                   example: "webhook"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
  */
 router.get('/health', (req, res) => {
   res.json({
