@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: webhook-tracking-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: true
+      # Redis - Configure com seus valores ou use serviço externo
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_PASSWORD
+        sync: false
+      # Facebook Conversions API
+      - key: FB_ACCESS_TOKEN
+        sync: false
+      - key: FB_PIXEL_ID
+        sync: false
+      - key: FB_API_VERSION
+        value: v18.0
+      # Queue (opcional)
+      - key: QUEUE_CONCURRENCY
+        value: 5
+      - key: QUEUE_MAX_RETRIES
+        value: 3
+      # Webhook Secret (opcional)
+      - key: WEBHOOK_SECRET
+        sync: false
+      # Test Event Code (opcional)
+      - key: FB_TEST_EVENT_CODE
+        sync: false
+

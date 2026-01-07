@@ -316,6 +316,7 @@ webhook-tracking-api/
 │   └── utils/
 │       └── logger.js          # Sistema de logs
 ├── .env.example
+├── render.yaml                # Configuração para deploy no Render
 ├── package.json
 └── README.md
 ```
@@ -382,6 +383,167 @@ router.registerRoute('new-api', newService);
   ...
 }
 ```
+
+## Deploy no Render
+
+### Pré-requisitos
+
+- Conta no [Render](https://render.com/)
+- Redis configurado (Render Redis ou serviço externo como Upstash/Redis Cloud)
+- Credenciais do Facebook Conversions API configuradas
+
+### Opção 1: Deploy usando render.yaml (Recomendado)
+
+1. **Conecte seu repositório ao Render:**
+   - Acesse [Render Dashboard](https://dashboard.render.com/)
+   - Clique em **"New +"** > **"Blueprint"**
+   - Conecte seu repositório GitHub/GitLab
+   - O Render detectará automaticamente o arquivo `render.yaml`
+
+2. **Configure o Redis:**
+   
+   **Opção A - Render Redis (Recomendado para produção):**
+   - No Render Dashboard, crie um novo **Redis** service
+   - Anote as credenciais (host, port, password)
+   
+   **Opção B - Serviço externo (Upstash/Redis Cloud):**
+   - Use as credenciais do seu serviço externo
+   - Veja seção "Como obter credenciais do Redis" acima
+
+3. **Configure as variáveis de ambiente:**
+   
+   No Render Dashboard, vá em **Environment** e adicione:
+   
+   ```env
+   # Server (PORT é definido automaticamente pelo Render)
+   NODE_ENV=production
+   
+   # Redis
+   REDIS_HOST=seu-redis-host
+   REDIS_PORT=6379
+   REDIS_PASSWORD=sua-senha-redis
+   
+   # Facebook Conversions API
+   FB_ACCESS_TOKEN=seu-facebook-access-token
+   FB_PIXEL_ID=seu-pixel-id
+   FB_API_VERSION=v18.0
+   
+   # Queue (opcional)
+   QUEUE_CONCURRENCY=5
+   QUEUE_MAX_RETRIES=3
+   
+   # Webhook Secret (opcional, mas recomendado para produção)
+   WEBHOOK_SECRET=seu-secret-seguro
+   
+   # Test Event Code (opcional, apenas para testes)
+   FB_TEST_EVENT_CODE=TEST12345
+   ```
+
+4. **Deploy:**
+   - O Render fará o deploy automaticamente
+   - Aguarde o build e start completarem
+   - Verifique os logs para confirmar que o serviço iniciou corretamente
+
+### Opção 2: Deploy Manual
+
+1. **Crie um novo Web Service:**
+   - No Render Dashboard, clique em **"New +"** > **"Web Service"**
+   - Conecte seu repositório
+
+2. **Configure o serviço:**
+   - **Name**: `webhook-tracking-api`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Plan**: Escolha o plano adequado (Starter para começar)
+
+3. **Configure variáveis de ambiente** (mesmas da Opção 1)
+
+4. **Health Check:**
+   - O Render usa automaticamente `/health` como health check
+   - Certifique-se de que a rota está funcionando
+
+### Verificar Deploy
+
+Após o deploy, verifique:
+
+1. **Health Check:**
+   ```bash
+   curl https://seu-app.onrender.com/health
+   ```
+   
+   Deve retornar:
+   ```json
+   {
+     "status": "ok",
+     "timestamp": "2024-01-01T12:00:00.000Z",
+     "queue": {
+       "waiting": 0,
+       "active": 0,
+       "completed": 0,
+       "failed": 0,
+       "total": 0
+     }
+   }
+   ```
+
+2. **Testar Webhook:**
+   ```bash
+   curl -X POST https://seu-app.onrender.com/webhook \
+     -H "Content-Type: application/json" \
+     -H "X-Webhook-Secret: seu-secret" \
+     -d '{
+       "event_name": "purchase",
+       "user_data": {
+         "email": "test@example.com"
+       },
+       "custom_data": {
+         "value": 99.90,
+         "currency": "BRL"
+       }
+     }'
+   ```
+
+3. **Verificar Logs:**
+   - No Render Dashboard, vá em **Logs**
+   - Verifique se há erros de conexão com Redis ou Facebook
+   - Confirme que os eventos estão sendo processados
+
+### Configuração de Redis no Render
+
+**Render Redis (Recomendado):**
+- Vá em **New +** > **Redis**
+- Escolha o plano (Free tier disponível para testes)
+- Após criar, copie as credenciais:
+  - **Internal Redis URL**: Use para `REDIS_HOST` e `REDIS_PORT`
+  - **Password**: Use para `REDIS_PASSWORD`
+
+**Serviços Externos:**
+- **Upstash**: Veja seção "Como obter credenciais do Redis" > Upstash
+- **Redis Cloud**: Veja seção "Como obter credenciais do Redis" > Redis Cloud
+
+### Monitoramento
+
+- **Logs**: Acesse **Logs** no Render Dashboard para ver logs em tempo real
+- **Metrics**: Render fornece métricas básicas de CPU, memória e requisições
+- **Health Check**: O Render monitora automaticamente o endpoint `/health`
+
+### Troubleshooting no Render
+
+**App não inicia:**
+- Verifique os logs no Render Dashboard
+- Confirme que todas as variáveis de ambiente estão configuradas
+- Verifique se o Redis está acessível
+
+**Erro de conexão com Redis:**
+- Se usar Render Redis, use o **Internal Redis URL** (não o externo)
+- Se usar serviço externo, verifique firewall e credenciais
+- Confirme que `REDIS_HOST`, `REDIS_PORT` e `REDIS_PASSWORD` estão corretos
+
+**Eventos não são processados:**
+- Verifique logs para erros do Facebook API
+- Confirme que `FB_ACCESS_TOKEN` e `FB_PIXEL_ID` estão corretos
+- Verifique se o worker está rodando (deve iniciar automaticamente)
 
 ## Troubleshooting
 
